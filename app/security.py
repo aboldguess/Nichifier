@@ -2,7 +2,8 @@
 =================
 Mini-README: Houses authentication utilities including password hashing, JWT token
 creation/validation, and dependencies for retrieving the current user with role
-checks. Relies on passlib and python-jose for cryptographic operations.
+checks. Utilises Argon2 via ``argon2-cffi`` for modern password hashing support
+and python-jose for cryptographic token operations.
 """
 
 from datetime import datetime, timedelta
@@ -10,7 +11,8 @@ from typing import Annotated, Optional
 
 from fastapi import Cookie, Depends, HTTPException, status
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -21,14 +23,20 @@ from .models import User, UserRole
 
 LOGGER = get_logger(__name__)
 
-# NOTE: ``bcrypt`` truncates secrets longer than 72 bytes. ``bcrypt_sha256`` pre-hashes the
-# password using SHA256 to safely accommodate longer passwords while keeping backwards
-# compatibility with the verification step. This ensures our service remains resilient to
-# long passphrases without raising runtime errors.
-pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
+# Argon2 parameters tuned for strong security guarantees while keeping verification times
+# acceptable for interactive logins. ``argon2-cffi`` performs its own salting and guards
+# against timing attacks, removing the 72 byte truncation limitations present in bcrypt.
+password_hasher = PasswordHasher(
+    time_cost=3,
+    memory_cost=65536,  # 64 MiB provides strong GPU resistance without overwhelming servers.
+    parallelism=2,
+    hash_len=32,
+    salt_len=16,
+)
 
 # Guardrails used when validating incoming passwords. Longer passphrases are still supported
-# thanks to ``bcrypt_sha256`` but we establish a sane upper bound to limit resource usage.
+# thanks to Argon2's internal hashing process, but we establish a sane upper bound to limit
+# resource usage and avoid denial-of-service vectors.
 PASSWORD_MIN_LENGTH = 8
 PASSWORD_MAX_LENGTH = 128
 
@@ -36,13 +44,20 @@ PASSWORD_MAX_LENGTH = 128
 async def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Validate a plain password against a hashed value."""
 
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        password_hasher.verify(hashed_password, plain_password)
+        return True
+    except VerifyMismatchError:
+        return False
+    except Exception as exc:  # pragma: no cover - defensive logging for unexpected issues.
+        LOGGER.error("Password verification failure: %s", exc)
+        return False
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt."""
+    """Hash a password using Argon2."""
 
-    return pwd_context.hash(password)
+    return password_hasher.hash(password)
 
 
 def validate_password_requirements(password: str) -> tuple[bool, str | None]:

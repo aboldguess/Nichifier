@@ -109,7 +109,7 @@ On-screen instructions across the app guide users; the README is primarily for o
 
 ## Security Considerations
 
-- Passwords are hashed using `passlib`'s bcrypt implementation.
+- Passwords are hashed using `argon2-cffi` with Argon2id parameters tuned for interactive logins.
 - JWT tokens are signed and stored in HttpOnly cookies to mitigate XSS risks.
 - Role-based dependency checks ensure sensitive routes are protected.
 - All external API calls (e.g., news aggregation) time out quickly and validate responses.
