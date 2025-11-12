@@ -71,6 +71,19 @@ class NicheRead(BaseModel):
         from_attributes = True
 
 
+class NicheUpdate(BaseModel):
+    """Payload for updating an existing niche with optional fields."""
+
+    name: Optional[str] = None
+    short_description: Optional[str] = None
+    detailed_description: Optional[str] = None
+    splash_image_url: Optional[str] = None
+    newsletter_price: Optional[float] = None
+    report_price: Optional[float] = None
+    voice_instructions: Optional[str] = None
+    style_guide: Optional[str] = None
+
+
 class SubscriptionCreate(BaseModel):
     """Payload to create or update a subscription."""
 

@@ -1,49 +1,135 @@
 {#
 niche_editor.html
 ==================
-Mini-README: Form for creating a new niche, capturing descriptive metadata and AI
-styling guidance. Accessible to admins and premium niche administrators.
+Mini-README: Form for creating or editing a niche. Shows inline instructions so
+admins understand how content feeds into the AI pipeline, surfaces errors, and
+offers a guarded delete workflow when editing existing niches.
 #}
 {% extends "base.html" %}
 
 {% block content %}
-<h2 class="mb-3">Create a new niche</h2>
-<p class="text-muted">Define the tone, style, and positioning for your niche. ChatGPT will use this guidance when drafting newsletters and reports.</p>
-<form method="post" action="/niches/manage/create" class="row g-3">
-  <div class="col-md-6">
-    <label class="form-label" for="name">Niche name</label>
-    <input class="form-control" type="text" id="name" name="name" required />
+{% set values = form_values or {} %}
+{% set page_title = title or 'Manage niche' %}
+{% set is_update_flow = is_update or False %}
+{% set delete_url = delete_action or None %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <div>
+        <h2 class="mb-1">{{ page_title }}</h2>
+        <p class="text-muted mb-0">
+          Fill in every field with the messaging you want our AI to mirror. Changes go live immediately after saving,
+          so double-check tone and pricing before submitting.
+        </p>
+      </div>
+      <span class="badge bg-primary-subtle text-primary fw-semibold">Niche management</span>
+    </div>
+    {% if error_message %}
+    <div class="alert alert-danger" role="alert">
+      {{ error_message }}
+    </div>
+    {% endif %}
+    <form method="post" action="{{ form_action }}" class="row g-3" novalidate>
+      <div class="col-md-6">
+        <label class="form-label" for="name">Niche name</label>
+        <input
+          class="form-control"
+          type="text"
+          id="name"
+          name="name"
+          value="{{ values.get('name', niche.name if niche else '') }}"
+          required
+        />
+        <div class="form-text">Keep the name short and memorable; it appears on landing pages and emails.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="splash_image_url">Hero image URL</label>
+        <input
+          class="form-control"
+          type="url"
+          id="splash_image_url"
+          name="splash_image_url"
+          placeholder="https://"
+          value="{{ values.get('splash_image_url', niche.splash_image_url if niche else '') }}"
+        />
+        <div class="form-text">Use a high-quality HTTPS image to keep the landing page looking sharp.</div>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="short_description">Short description</label>
+        <input
+          class="form-control"
+          type="text"
+          id="short_description"
+          name="short_description"
+          maxlength="512"
+          value="{{ values.get('short_description', niche.short_description if niche else '') }}"
+          required
+        />
+        <div class="form-text">One-liner used in marketing cards and preview snippets.</div>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="detailed_description">Detailed description</label>
+        <textarea class="form-control" id="detailed_description" name="detailed_description" rows="4">{{ values.get('detailed_description', niche.detailed_description if niche else '') }}</textarea>
+        <div class="form-text">Share the audience, pain points, and benefits so AI understands the context.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="newsletter_price">Newsletter price (£)</label>
+        {% set newsletter_price_value = values.get('newsletter_price', niche.newsletter_price if niche else 0) %}
+        <input
+          class="form-control"
+          type="number"
+          step="0.01"
+          id="newsletter_price"
+          name="newsletter_price"
+          value="{{ newsletter_price_value if newsletter_price_value is not none else '' }}"
+        />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="report_price">Report price (£)</label>
+        {% set report_price_value = values.get('report_price', niche.report_price if niche else 0) %}
+        <input
+          class="form-control"
+          type="number"
+          step="0.01"
+          id="report_price"
+          name="report_price"
+          value="{{ report_price_value if report_price_value is not none else '' }}"
+        />
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="voice_instructions">Voice instructions</label>
+        <textarea class="form-control" id="voice_instructions" name="voice_instructions" rows="3" placeholder="e.g., Confident, upbeat, data-driven">{{ values.get('voice_instructions', niche.voice_instructions if niche else '') }}</textarea>
+        <div class="form-text">Describe tone and pacing. These cues guide newsletter and report drafting.</div>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="style_guide">Style guide</label>
+        <textarea class="form-control" id="style_guide" name="style_guide" rows="3" placeholder="Outline structure, bullet usage, and depth">{{ values.get('style_guide', niche.style_guide if niche else '') }}</textarea>
+        <div class="form-text">List formatting rules, CTA preferences, and any compliance reminders.</div>
+      </div>
+      <div class="col-12 d-flex justify-content-end">
+        <button class="btn btn-success" type="submit">{{ submit_label or 'Save niche' }}</button>
+      </div>
+    </form>
+    {% if is_update_flow and delete_url %}
+    <div class="card border-danger-subtle mt-4">
+      <div class="card-body">
+        <h3 class="card-title text-danger">Danger zone</h3>
+        <p class="card-text">
+          Deleting a niche removes all of its newsletters, reports, and subscription links. This cannot be undone, so
+          be absolutely certain before continuing.
+        </p>
+        <form method="post" action="{{ delete_url }}" class="row g-2 align-items-center">
+          <div class="col-sm-8">
+            <label class="form-label" for="confirmation_text">Type <strong>DELETE</strong> to confirm</label>
+            <input class="form-control" type="text" id="confirmation_text" name="confirmation_text" placeholder="DELETE" required />
+          </div>
+          <div class="col-sm-4 d-flex align-items-end">
+            <button class="btn btn-outline-danger w-100" type="submit">Delete niche</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
   </div>
-  <div class="col-md-6">
-    <label class="form-label" for="splash_image_url">Hero image URL</label>
-    <input class="form-control" type="url" id="splash_image_url" name="splash_image_url" placeholder="https://" />
-  </div>
-  <div class="col-12">
-    <label class="form-label" for="short_description">Short description</label>
-    <input class="form-control" type="text" id="short_description" name="short_description" maxlength="512" required />
-  </div>
-  <div class="col-12">
-    <label class="form-label" for="detailed_description">Detailed description</label>
-    <textarea class="form-control" id="detailed_description" name="detailed_description" rows="4"></textarea>
-  </div>
-  <div class="col-md-6">
-    <label class="form-label" for="newsletter_price">Newsletter price (£)</label>
-    <input class="form-control" type="number" step="0.01" id="newsletter_price" name="newsletter_price" value="0" />
-  </div>
-  <div class="col-md-6">
-    <label class="form-label" for="report_price">Report price (£)</label>
-    <input class="form-control" type="number" step="0.01" id="report_price" name="report_price" value="99" />
-  </div>
-  <div class="col-12">
-    <label class="form-label" for="voice_instructions">Voice instructions</label>
-    <textarea class="form-control" id="voice_instructions" name="voice_instructions" rows="3" placeholder="e.g., Confident, upbeat, data-driven"></textarea>
-  </div>
-  <div class="col-12">
-    <label class="form-label" for="style_guide">Style guide</label>
-    <textarea class="form-control" id="style_guide" name="style_guide" rows="3" placeholder="Outline structure, bullet usage, and depth"></textarea>
-  </div>
-  <div class="col-12 d-flex justify-content-end">
-    <button class="btn btn-success" type="submit">Create niche</button>
-  </div>
-</form>
+</div>
 {% endblock %}
