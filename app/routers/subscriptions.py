@@ -90,7 +90,9 @@ async def delete_subscription(
     if subscription is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
 
-    await session.delete(subscription)
+    # AsyncSession.delete is intentionally called without awaiting because it is
+    # a synchronous method that schedules the deletion for the next commit.
+    session.delete(subscription)
     await session.commit()
     LOGGER.info("User %s deleted subscription %s", user.email, subscription_id)
     return RedirectResponse(url="/subscriptions/manage", status_code=status.HTTP_303_SEE_OTHER)
