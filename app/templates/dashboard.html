@@ -1,0 +1,76 @@
+{#
+dashboard.html
+===============
+Mini-README: Authenticated user dashboard summarising role privileges, subscription
+quick actions, and onboarding instructions for premium upgrades.
+#}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="card-title">Welcome back{{ ' ' + user.full_name if user else '' }}!</h2>
+        <p class="text-muted">You are signed in as <strong>{{ role }}</strong>. Use the shortcuts below to continue building or enjoying your curated intelligence.</p>
+        <div class="row g-3 mt-3">
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-light">
+              <h5>Manage subscriptions</h5>
+              <p>Toggle newsletters and reports for the niches you follow.</p>
+              <a class="btn btn-outline-primary" href="/subscriptions/manage">Open subscription dashboard</a>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-light">
+              <h5>Launch a new niche</h5>
+              <p>{% if is_niche_admin or is_admin %}Premium users can curate bespoke niches with custom AI guidance.{% else %}Upgrade to premium to unlock niche creation tools.{% endif %}</p>
+              {% if is_niche_admin or is_admin %}
+              <a class="btn btn-outline-success" href="/niches/manage/create">Design a niche</a>
+              {% else %}
+              <a class="btn btn-outline-success" href="/premium">See upgrade options</a>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-light">
+              <h5>Visit admin hub</h5>
+              <p>Admins can adjust branding, cadence, and manage all users.</p>
+              {% if is_admin %}
+              <a class="btn btn-outline-dark" href="/admin/dashboard">Go to admin hub</a>
+              {% else %}
+              <a class="btn btn-outline-dark" href="/premium">Request admin access</a>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-light">
+              <h5>Explore niches</h5>
+              <p>Discover new industry pods or update AI voice and style instructions.</p>
+              <a class="btn btn-outline-secondary" href="/">Browse all niches</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Your quick stats</h5>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item">Role: {{ role }}</li>
+          <li class="list-group-item">Premium status: {{ 'Active' if user.is_premium else 'Free tier' }}</li>
+          <li class="list-group-item">Registered email: {{ user.email }}</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Need help?</h5>
+        <p>Visit the Learning Zone from the profile menu for detailed tutorials and troubleshooting tips.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

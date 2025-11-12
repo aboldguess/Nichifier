@@ -1,0 +1,64 @@
+{#
+subscription_management.html
+=============================
+Mini-README: Interface for subscribers to toggle newsletter and report access per
+niche, emphasising transparency over billing status.
+#}
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Manage your subscriptions</h2>
+<p class="text-muted">Select the niches and services you want. Changes apply immediately and will reflect in your next billing cycle if applicable.</p>
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Current subscriptions</h5>
+        <ul class="list-group list-group-flush">
+          {% for subscription in subscriptions %}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ subscription.niche.name }}</strong>
+                <div class="small text-muted">Newsletter: {{ 'Yes' if subscription.wants_newsletter else 'No' }} | Reports: {{ 'Yes' if subscription.wants_report else 'No' }}</div>
+              </div>
+              <form method="post" action="/subscriptions/delete/{{ subscription.id }}">
+                <button class="btn btn-sm btn-danger" type="submit">Cancel</button>
+              </form>
+            </div>
+          </li>
+          {% else %}
+          <li class="list-group-item">You have no active subscriptions yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Add or update a subscription</h5>
+        <form method="post" action="/subscriptions/manage" class="vstack gap-3">
+          <div>
+            <label class="form-label" for="niche_id">Select niche</label>
+            <select class="form-select" id="niche_id" name="niche_id" required>
+              {% for niche in niches %}
+              <option value="{{ niche.id }}">{{ niche.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="wants_newsletter" name="wants_newsletter" value="true" />
+            <label class="form-check-label" for="wants_newsletter">Daily newsletter (free)</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="wants_report" name="wants_report" value="true" />
+            <label class="form-check-label" for="wants_report">Premium reports (paid)</label>
+          </div>
+          <button class="btn btn-primary" type="submit">Save subscription</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{#
+niche_detail.html
+==================
+Mini-README: Detailed landing page for a niche including description, AI style
+instructions, and subscription prompts.
+#}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <img
+        src="{{ niche.splash_image_url or 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80' }}"
+        class="card-img-top"
+        alt="{{ niche.name }} visual"
+      />
+      <div class="card-body">
+        <h2 class="card-title">{{ niche.name }}</h2>
+        <p class="card-text">{{ niche.detailed_description or niche.short_description }}</p>
+        <h5>AI Configuration</h5>
+        <p><strong>Voice instructions:</strong> {{ niche.voice_instructions or 'Not yet configured. Upgrade to premium to customise.' }}</p>
+        <p><strong>Style guide:</strong> {{ niche.style_guide or 'Not yet configured. Premium users can craft precise guidance.' }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h5 class="card-title">Subscription options</h5>
+        <p>Daily newsletter: <strong>FREE</strong></p>
+        <p>Reports: <strong>£{{ '%.2f'|format(niche.report_price or 0) }}</strong></p>
+        <a class="btn btn-primary w-100 mb-2" href="/auth/register">Subscribe free newsletter</a>
+        <a class="btn btn-outline-primary w-100" href="/auth/register">Upgrade for premium reports</a>
+      </div>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Become a curator</h5>
+        <p>Want to run niches like this? Upgrade to a premium account from your dashboard and start earning today.</p>
+        <a class="btn btn-success w-100" href="/auth/register">Upgrade to premium</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
