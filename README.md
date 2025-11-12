@@ -1,1 +1,127 @@
-# Nichifier
+# Nichifier Business Intelligence Platform
+
+Nichifier is a cloneable business intelligence platform for curating industry-specific newsletters and periodical reports powered by AI-assisted content generation. The platform enables administrators to manage global appearance and cadence, niche administrators to tailor content for individual industries, and subscribers to consume curated insights.
+
+## Features
+
+- Multi-role access control (platform admins, niche admins, subscribers, anonymous visitors).
+- Configurable AI-powered content generation guidelines per niche (style, tone, depth).
+- Newsletter and report scheduling for daily, weekly, monthly, and quarterly cadences.
+- Customisable themes, splash screen, and dashboard experiences.
+- Secure authentication with JWT-backed session cookies and password hashing.
+- Modular FastAPI backend with SQLAlchemy ORM and Pydantic schemas.
+- Responsive UI using Bootstrap 5 with custom theming.
+- Comprehensive logging for debugging and monitoring.
+
+## Repository Layout
+
+```
+app/
+  config.py                # Application configuration management.
+  database.py              # Database engine and session handling utilities.
+  logger.py                # Structured logging setup.
+  models.py                # SQLAlchemy ORM models.
+  schemas.py               # Pydantic request/response schemas.
+  security.py              # Authentication, password hashing, and JWT utilities.
+  routers/                 # FastAPI routers by domain (auth, niches, admin, subscriptions).
+  services/                # Business logic modules (newsletter generation, etc.).
+  templates/               # Jinja2 HTML templates.
+  static/                  # CSS, JS, and image assets.
+nichifier_platform_server.py  # FastAPI application entrypoint.
+pyproject.toml            # Project dependencies.
+scripts/                  # Helper scripts for environment setup.
+```
+
+## Prerequisites
+
+- Python 3.11 or later
+- SQLite (bundled with Python standard library)
+
+## Setup Instructions
+
+### Linux / macOS / Raspberry Pi OS
+
+```bash
+# 1. Clone the repository
+ git clone https://github.com/your-org/nichifier.git
+ cd nichifier
+
+# 2. Create and activate a virtual environment
+ python3 -m venv .venv
+ source .venv/bin/activate
+
+# 3. Upgrade pip and install dependencies
+ pip install --upgrade pip
+ pip install -e .
+
+# 4. Initialise the database (creates SQLite file and tables)
+ python nichifier_platform_server.py --init-db
+
+# 5. Run the development server on a chosen port (default 8000)
+ python nichifier_platform_server.py --host 0.0.0.0 --port 8080 --reload
+```
+
+### Windows PowerShell
+
+```powershell
+# 1. Clone the repository
+ git clone https://github.com/your-org/nichifier.git
+ Set-Location nichifier
+
+# 2. Create and activate a virtual environment
+ py -3 -m venv .venv
+ .venv\Scripts\Activate.ps1
+
+# 3. Upgrade pip and install dependencies
+ python -m pip install --upgrade pip
+ python -m pip install -e .
+
+# 4. Initialise the database
+ python nichifier_platform_server.py --init-db
+
+# 5. Run the development server
+ python nichifier_platform_server.py --host 0.0.0.0 --port 8080 --reload
+```
+
+## Helper Scripts
+
+- `scripts/setup_environment.sh` – Automates virtual environment creation and dependency installation on Linux/macOS.
+- `scripts/setup_environment.ps1` – PowerShell equivalent for Windows.
+
+Run the scripts with execution permission (Linux/macOS: `chmod +x scripts/setup_environment.sh && ./scripts/setup_environment.sh`). On Windows, ensure script execution is permitted (`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`).
+
+## Usage Overview
+
+1. Visit `http://localhost:8080` to view the public splash page listing all niches.
+2. Create an account and sign in to access dashboards.
+3. Platform admins can configure themes, cadences, and manage users.
+4. Niche admins can curate niche pages, adjust AI tone/style, and schedule newsletters.
+5. Subscribers can manage subscriptions and access premium reports.
+
+On-screen instructions across the app guide users; the README is primarily for operators and developers.
+
+## Debugging
+
+- Logs are emitted to the console with structured context via the `app.logger` module.
+- Use the `--log-level` argument when starting the server to adjust verbosity.
+- SQLAlchemy echoes can be toggled with the `DATABASE_ECHO` environment variable.
+
+## Security Considerations
+
+- Passwords are hashed using `passlib`'s bcrypt implementation.
+- JWT tokens are signed and stored in HttpOnly cookies to mitigate XSS risks.
+- Role-based dependency checks ensure sensitive routes are protected.
+- All external API calls (e.g., news aggregation) time out quickly and validate responses.
+
+## Testing
+
+Install optional development dependencies and run tests with `pytest`.
+
+```bash
+pip install -e .[dev]
+pytest
+```
+
+## License
+
+MIT License. See `LICENSE` if provided.

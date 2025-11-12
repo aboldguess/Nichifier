@@ -1,0 +1,53 @@
+{#
+home.html
+==========
+Mini-README: Landing page listing available niches with subscription CTAs and premium
+upsell messaging for prospective niche admins.
+#}
+{% extends "base.html" %}
+
+{% block content %}
+<section class="text-center mb-5">
+  <h1 class="display-5 fw-bold">{{ headline or 'Business Niche News' }}</h1>
+  <p class="lead">{{ cta_message or 'Stay ahead with curated intelligence tailored to your industry.' }}</p>
+  <a class="btn btn-lg btn-primary" href="/auth/register">Subscribe to a free daily briefing</a>
+  <a class="btn btn-lg btn-outline-secondary ms-2" href="/auth/login">Already a member? Sign in</a>
+</section>
+
+<section class="row g-4">
+  {% for niche in niches %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card h-100 shadow-sm">
+      <img
+        src="{{ niche.splash_image_url or 'https://images.unsplash.com/photo-1483478550801-ceba5fe50e8e?auto=format&fit=crop&w=900&q=80' }}"
+        class="card-img-top"
+        alt="{{ niche.name }}"
+      />
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title">{{ niche.name }}</h5>
+        <p class="card-text">{{ niche.short_description }}</p>
+        <div class="mt-auto d-grid gap-2">
+          <a class="btn btn-outline-primary" href="/auth/register">Subscribe to newsletter — FREE</a>
+          <a class="btn btn-primary" href="/auth/register">Subscribe to niche report — £{{ '%.2f'|format(niche.report_price or 0) }}</a>
+          <a class="btn btn-link" href="/niches/{{ niche.id }}">Learn more</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="alert alert-warning">
+      No niches available yet. Click "Add Niche" above to become a premium curator and launch your niche in minutes.
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<div class="text-center mt-5">
+  <div class="p-4 bg-white border rounded-3 shadow-sm">
+    <h2 class="fw-bold">Ready to launch your own niche?</h2>
+    <p class="mb-3">Upgrade to a premium account to design bespoke newsletters, configure AI tone, and monetise reports.</p>
+    <a class="btn btn-success btn-lg" href="/auth/register">Upgrade now</a>
+  </div>
+</div>
+{% endblock %}

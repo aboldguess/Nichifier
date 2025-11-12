@@ -1,0 +1,40 @@
+{#
+register.html
+==============
+Mini-README: Registration page guiding new users through creating secure accounts and
+highlighting the benefits of upgrading to premium niche administration.
+#}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title mb-3">Create your Nichifier account</h2>
+        <p class="text-muted">Register for free to receive daily niche briefings. Upgrade anytime to curate your own industry niche.</p>
+        {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+        <form method="post" action="/auth/register" class="vstack gap-3">
+          <div>
+            <label class="form-label" for="full_name">Full name</label>
+            <input class="form-control" type="text" id="full_name" name="full_name" required />
+          </div>
+          <div>
+            <label class="form-label" for="email">Email address</label>
+            <input class="form-control" type="email" id="email" name="email" required />
+          </div>
+          <div>
+            <label class="form-label" for="password">Password</label>
+            <input class="form-control" type="password" id="password" name="password" minlength="8" required />
+            <div class="form-text">Use at least 8 characters with a mix of letters, numbers, and symbols.</div>
+          </div>
+          <button class="btn btn-success" type="submit">Create account</button>
+        </form>
+        <hr />
+        <p class="mb-1">Want to launch a niche? Choose "Add Niche" after signup to upgrade.</p>
+        <p class="mb-0">Already have an account? <a href="/auth/login">Sign in here</a>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

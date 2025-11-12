@@ -1,0 +1,69 @@
+{#
+admin_dashboard.html
+====================
+Mini-README: Administrative control centre summarising platform users and niches,
+with guidance for theme and cadence configuration tasks.
+#}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title">Platform configuration</h2>
+        <p class="text-muted">Use this hub to adjust global themes, schedule newsletter cadences, and manage premium upgrades.</p>
+        <div class="alert alert-primary">{{ config_help }}</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="border rounded p-3 bg-light">
+              <h5>Theme designer</h5>
+              <p>Customise colours, typography, and imagery to match your brand.</p>
+              <button class="btn btn-outline-dark w-100" disabled>Launch theme editor (coming soon)</button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="border rounded p-3 bg-light">
+              <h5>Cadence planner</h5>
+              <p>Set daily newsletter times plus weekly, monthly, and quarterly report schedules.</p>
+              <button class="btn btn-outline-dark w-100" disabled>Configure schedule (coming soon)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Users</h5>
+        <ul class="list-group list-group-flush">
+          {% for user in users %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ user.full_name }}<br /><small class="text-muted">{{ user.email }}</small></span>
+            <span class="badge bg-primary text-uppercase">{{ user.role }}</span>
+          </li>
+          {% else %}
+          <li class="list-group-item">No users registered yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Niches</h5>
+        <ul class="list-group list-group-flush">
+          {% for niche in niches %}
+          <li class="list-group-item">
+            <strong>{{ niche.name }}</strong><br />
+            <small class="text-muted">Owner: {{ niche.owner.full_name if niche.owner else 'Unassigned' }}</small>
+          </li>
+          {% else %}
+          <li class="list-group-item">No niches created yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

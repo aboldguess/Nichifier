@@ -1,0 +1,41 @@
+/*
+nichifier_styles.css
+=====================
+Mini-README: Custom CSS tweaks layered on top of Bootstrap to deliver the Nichifier
+brand personality and improve readability.
+*/
+
+body {
+  font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+.navbar-brand {
+  letter-spacing: 0.08rem;
+}
+
+.card-title {
+  font-weight: 700;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2c7be5 0%, #00b8d9 100%);
+  border: none;
+}
+
+.btn-primary:hover {
+  filter: brightness(0.95);
+}
+
+.card {
+  border: none;
+  border-radius: 1rem;
+}
+
+.card img {
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+}
+
+footer {
+  font-size: 0.9rem;
+}

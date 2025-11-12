@@ -1,0 +1,30 @@
+{#
+premium_upgrade.html
+=====================
+Mini-README: Explains benefits of upgrading to premium (niche admin) status and
+provides clear next steps.
+#}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title">Upgrade to become a niche admin</h2>
+        <p class="lead">Premium users (niche admins) can create and monetise their own industry verticals.</p>
+        <ul class="list-group list-group-flush mb-3">
+          <li class="list-group-item">Design niche landing pages with custom imagery and pricing.</li>
+          <li class="list-group-item">Configure ChatGPT tone, style, and depth for newsletters and reports.</li>
+          <li class="list-group-item">Access premium analytics, learning resources, and user management tools.</li>
+        </ul>
+        <div class="alert alert-info">Ready to upgrade? Sign in, head to your dashboard, and choose "Design a niche".</div>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-primary" href="/auth/login">Sign in to upgrade</a>
+          <a class="btn btn-outline-primary" href="/auth/register">Create an account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

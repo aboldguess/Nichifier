@@ -1,0 +1,49 @@
+{#
+niche_editor.html
+==================
+Mini-README: Form for creating a new niche, capturing descriptive metadata and AI
+styling guidance. Accessible to admins and premium niche administrators.
+#}
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-3">Create a new niche</h2>
+<p class="text-muted">Define the tone, style, and positioning for your niche. ChatGPT will use this guidance when drafting newsletters and reports.</p>
+<form method="post" action="/niches/manage/create" class="row g-3">
+  <div class="col-md-6">
+    <label class="form-label" for="name">Niche name</label>
+    <input class="form-control" type="text" id="name" name="name" required />
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="splash_image_url">Hero image URL</label>
+    <input class="form-control" type="url" id="splash_image_url" name="splash_image_url" placeholder="https://" />
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="short_description">Short description</label>
+    <input class="form-control" type="text" id="short_description" name="short_description" maxlength="512" required />
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="detailed_description">Detailed description</label>
+    <textarea class="form-control" id="detailed_description" name="detailed_description" rows="4"></textarea>
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="newsletter_price">Newsletter price (£)</label>
+    <input class="form-control" type="number" step="0.01" id="newsletter_price" name="newsletter_price" value="0" />
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="report_price">Report price (£)</label>
+    <input class="form-control" type="number" step="0.01" id="report_price" name="report_price" value="99" />
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="voice_instructions">Voice instructions</label>
+    <textarea class="form-control" id="voice_instructions" name="voice_instructions" rows="3" placeholder="e.g., Confident, upbeat, data-driven"></textarea>
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="style_guide">Style guide</label>
+    <textarea class="form-control" id="style_guide" name="style_guide" rows="3" placeholder="Outline structure, bullet usage, and depth"></textarea>
+  </div>
+  <div class="col-12 d-flex justify-content-end">
+    <button class="btn btn-success" type="submit">Create niche</button>
+  </div>
+</form>
+{% endblock %}
