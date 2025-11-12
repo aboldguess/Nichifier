@@ -35,7 +35,8 @@ scripts/                  # Helper scripts for environment setup.
 ## Prerequisites
 
 - Python 3.11 or later
-- SQLite (bundled with Python standard library)
+- SQLite (bundled with Python standard library) – the async driver `aiosqlite` is
+  installed automatically when you run `pip install -e .`
 
 ## Setup Instructions
 
