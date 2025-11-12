@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..logger import get_logger
-from ..models import Niche
+from ..models import Niche, NewsletterIssue, NewsArticle, ReportIssue, Subscription
 
 LOGGER = get_logger(__name__)
 
@@ -119,8 +119,56 @@ async def update_niche(
 
 
 async def delete_niche(session: AsyncSession, niche: Niche) -> None:
-    """Remove a niche from the database."""
+    """Remove a niche and clean up dependent rows for referential integrity."""
+
+    niche_id = niche.id
+
+    # Capture counts for observability so we know what was removed alongside the niche.
+    subscription_count = (
+        await session.execute(
+            select(func.count(Subscription.id)).where(Subscription.niche_id == niche_id)
+        )
+    ).scalar_one()
+    newsletter_issue_ids = (
+        await session.execute(
+            select(NewsletterIssue.id).where(NewsletterIssue.niche_id == niche_id)
+        )
+    ).scalars().all()
+    newsletter_issue_count = len(newsletter_issue_ids)
+    newsletter_article_count = 0
+    if newsletter_issue_ids:
+        newsletter_article_count = (
+            await session.execute(
+                select(func.count(NewsArticle.id)).where(
+                    NewsArticle.newsletter_issue_id.in_(newsletter_issue_ids)
+                )
+            )
+        ).scalar_one()
+    report_issue_count = (
+        await session.execute(
+            select(func.count(ReportIssue.id)).where(ReportIssue.niche_id == niche_id)
+        )
+    ).scalar_one()
+
+    LOGGER.info(
+        "Deleting niche id=%s name=%s (subscriptions=%s newsletters=%s reports=%s articles=%s)",
+        niche_id,
+        niche.name,
+        subscription_count,
+        newsletter_issue_count,
+        report_issue_count,
+        newsletter_article_count,
+    )
+
+    # Remove dependent records explicitly because the schema does not use cascades.
+    if newsletter_issue_ids:
+        await session.execute(
+            delete(NewsArticle).where(NewsArticle.newsletter_issue_id.in_(newsletter_issue_ids))
+        )
+    await session.execute(delete(NewsletterIssue).where(NewsletterIssue.niche_id == niche_id))
+    await session.execute(delete(ReportIssue).where(ReportIssue.niche_id == niche_id))
+    await session.execute(delete(Subscription).where(Subscription.niche_id == niche_id))
 
     await session.delete(niche)
     await session.commit()
-    LOGGER.info("Deleted niche id=%s name=%s", niche.id, niche.name)
+    LOGGER.info("Deleted niche id=%s name=%s", niche_id, niche.name)
