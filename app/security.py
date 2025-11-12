@@ -21,7 +21,16 @@ from .models import User, UserRole
 
 LOGGER = get_logger(__name__)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# NOTE: ``bcrypt`` truncates secrets longer than 72 bytes. ``bcrypt_sha256`` pre-hashes the
+# password using SHA256 to safely accommodate longer passwords while keeping backwards
+# compatibility with the verification step. This ensures our service remains resilient to
+# long passphrases without raising runtime errors.
+pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
+
+# Guardrails used when validating incoming passwords. Longer passphrases are still supported
+# thanks to ``bcrypt_sha256`` but we establish a sane upper bound to limit resource usage.
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 128
 
 
 async def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -34,6 +43,16 @@ def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt."""
 
     return pwd_context.hash(password)
+
+
+def validate_password_requirements(password: str) -> tuple[bool, str | None]:
+    """Validate password length requirements returning a tuple (is_valid, error_message)."""
+
+    if len(password) < PASSWORD_MIN_LENGTH:
+        return False, f"Password must be at least {PASSWORD_MIN_LENGTH} characters long."
+    if len(password) > PASSWORD_MAX_LENGTH:
+        return False, f"Password must be fewer than {PASSWORD_MAX_LENGTH} characters."
+    return True, None
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
