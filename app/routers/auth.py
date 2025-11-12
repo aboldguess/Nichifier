@@ -16,7 +16,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db_session
 from ..logger import get_logger
 from ..models import User, UserRole
-from ..security import create_access_token, get_current_user, get_password_hash, verify_password
+from ..security import (
+    PASSWORD_MAX_LENGTH,
+    PASSWORD_MIN_LENGTH,
+    create_access_token,
+    get_current_user,
+    get_password_hash,
+    validate_password_requirements,
+    verify_password,
+)
 
 TEMPLATES = Jinja2Templates(directory="app/templates")
 LOGGER = get_logger(__name__)
@@ -49,6 +57,24 @@ async def register_user(
         return TEMPLATES.TemplateResponse(
             "register.html",
             {"request": request, "error": "Email already registered. Please sign in instead.", "title": "Register"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    is_valid_password, password_error = validate_password_requirements(password)
+    if not is_valid_password:
+        LOGGER.warning(
+            "Registration attempt with invalid password length for email %s (min=%s, max=%s)",
+            email,
+            PASSWORD_MIN_LENGTH,
+            PASSWORD_MAX_LENGTH,
+        )
+        return TEMPLATES.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "error": password_error,
+                "title": "Register",
+            },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -87,6 +113,20 @@ async def login_user(
         return TEMPLATES.TemplateResponse(
             "login.html",
             {"request": request, "error": "Invalid credentials. Please try again.", "title": "Sign In"},
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    if len(password) > PASSWORD_MAX_LENGTH:
+        LOGGER.warning(
+            "Login attempt with password exceeding max length for email %s", email
+        )
+        return TEMPLATES.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "error": "Invalid credentials. Please try again.",
+                "title": "Sign In",
+            },
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
