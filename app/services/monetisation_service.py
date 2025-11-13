@@ -266,4 +266,4 @@ async def count_active_niches_for_user(session: AsyncSession, user_id: int) -> i
     count = result.scalar_one()
     return count
 
-*** End of File
+
