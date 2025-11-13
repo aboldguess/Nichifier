@@ -18,6 +18,18 @@ from .niche_service import (
     fetch_niche_by_id,
     update_niche,
 )
+from .monetisation_service import (
+    attach_creator_privileges,
+    calculate_revenue_split,
+    calculate_subscription_totals,
+    count_active_niches_for_user,
+    ensure_subscription_metrics,
+    get_active_creator_subscription,
+    get_or_create_platform_settings,
+    list_creator_plans,
+    update_platform_settings,
+    upsert_creator_plan,
+)
 
 __all__ = [
     "AggregatedArticle",
@@ -30,4 +42,14 @@ __all__ = [
     "fetch_all_niches",
     "fetch_niche_by_id",
     "update_niche",
+    "attach_creator_privileges",
+    "calculate_revenue_split",
+    "calculate_subscription_totals",
+    "count_active_niches_for_user",
+    "ensure_subscription_metrics",
+    "get_active_creator_subscription",
+    "get_or_create_platform_settings",
+    "list_creator_plans",
+    "update_platform_settings",
+    "upsert_creator_plan",
 ]

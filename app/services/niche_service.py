@@ -6,6 +6,7 @@ CRUD helpers, validation, and logging so routes remain focused on HTTP concerns.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any, Iterable
 
 from sqlalchemy import delete, func, select
@@ -54,6 +55,15 @@ def _sanitise_payload(niche_data: dict[str, Any]) -> dict[str, Any]:
             value = cleaned[optional_key]
             if isinstance(value, str):
                 cleaned[optional_key] = value.strip() or None
+    for price_key in ("newsletter_price", "report_price"):
+        if price_key in cleaned and cleaned[price_key] is not None:
+            cleaned[price_key] = Decimal(str(cleaned[price_key])).quantize(Decimal("0.01"))
+    if "currency_code" in cleaned and isinstance(cleaned["currency_code"], str):
+        cleaned["currency_code"] = cleaned["currency_code"].strip().upper() or "GBP"
+    for cadence_key in ("newsletter_cadence", "report_cadence"):
+        value = cleaned.get(cadence_key)
+        if isinstance(value, str):
+            cleaned[cadence_key] = value.strip().lower() or "monthly"
     return cleaned
 
 

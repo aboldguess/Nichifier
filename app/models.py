@@ -3,10 +3,14 @@
 Mini-README: Contains SQLAlchemy ORM model definitions for the Nichifier platform,
 including users, niches, subscriptions, newsletters, and AI configuration metadata.
 Relationships and helper enumerations define the domain model used throughout the app.
+
+This module also houses the monetisation schema, covering billing profiles, creator
+plans, and platform fee configuration so that revenue sharing logic stays centralised.
 """
 
 import enum
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Optional
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text
@@ -39,6 +43,8 @@ class User(Base):
 
     niches: Mapped[List["Niche"]] = relationship(back_populates="owner")
     subscriptions: Mapped[List["Subscription"]] = relationship(back_populates="user")
+    billing_profile: Mapped[Optional["BillingProfile"]] = relationship(back_populates="user", uselist=False)
+    creator_subscriptions: Mapped[List["CreatorSubscription"]] = relationship(back_populates="user")
 
 
 class Niche(Base):
@@ -53,6 +59,9 @@ class Niche(Base):
     splash_image_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     newsletter_price: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     report_price: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    currency_code: Mapped[str] = mapped_column(String(3), default="GBP")
+    newsletter_cadence: Mapped[str] = mapped_column(String(32), default="monthly")
+    report_cadence: Mapped[str] = mapped_column(String(32), default="monthly")
     voice_instructions: Mapped[str] = mapped_column(Text, default="")
     style_guide: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -63,6 +72,15 @@ class Niche(Base):
     subscriptions: Mapped[List["Subscription"]] = relationship(back_populates="niche")
     newsletter_issues: Mapped[List["NewsletterIssue"]] = relationship(back_populates="niche")
     report_issues: Mapped[List["ReportIssue"]] = relationship(back_populates="niche")
+
+
+class SubscriptionStatus(str, enum.Enum):
+    """Enumerates billing lifecycle states for subscriber access."""
+
+    ACTIVE = "active"
+    TRIALING = "trialing"
+    PAST_DUE = "past_due"
+    CANCELED = "canceled"
 
 
 class Subscription(Base):
@@ -77,6 +95,14 @@ class Subscription(Base):
     wants_report: Mapped[bool] = mapped_column(Boolean, default=False)
     started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    status: Mapped[SubscriptionStatus] = mapped_column(Enum(SubscriptionStatus), default=SubscriptionStatus.TRIALING)
+    billing_cadence: Mapped[str] = mapped_column(String(32), default="monthly")
+    currency_code: Mapped[str] = mapped_column(String(3), default="GBP")
+    gross_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
+    platform_fee_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
+    creator_payout_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
+    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    last_charged_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="subscriptions")
     niche: Mapped[Niche] = relationship(back_populates="subscriptions")
@@ -125,3 +151,82 @@ class NewsArticle(Base):
     summary: Mapped[str] = mapped_column(Text)
 
     newsletter_issue: Mapped[NewsletterIssue] = relationship(back_populates="articles")
+
+
+class BillingProfile(Base):
+    """Stores Stripe (or equivalent) identifiers for end-user billing."""
+
+    __tablename__ = "billing_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
+    stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    default_payment_method: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user: Mapped[User] = relationship(back_populates="billing_profile")
+
+
+class CreatorPlan(Base):
+    """Defines curator subscription tiers offered to would-be niche owners."""
+
+    __tablename__ = "creator_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    slug: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    display_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    monthly_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
+    currency_code: Mapped[str] = mapped_column(String(3), default="GBP")
+    stripe_price_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    max_niches: Mapped[int] = mapped_column(Integer, default=1)
+    feature_summary: Mapped[str] = mapped_column(Text, default="")
+    platform_fee_discount_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("0.00"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator_subscriptions: Mapped[List["CreatorSubscription"]] = relationship(back_populates="plan")
+
+
+class CreatorSubscriptionStatus(str, enum.Enum):
+    """Lifecycle states for curator subscription payments."""
+
+    ACTIVE = "active"
+    TRIALING = "trialing"
+    CANCELED = "canceled"
+    PAST_DUE = "past_due"
+
+
+class CreatorSubscription(Base):
+    """Links a user to a creator plan and tracks billing identifiers."""
+
+    __tablename__ = "creator_subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    plan_id: Mapped[int] = mapped_column(ForeignKey("creator_plans.id"))
+    status: Mapped[CreatorSubscriptionStatus] = mapped_column(
+        Enum(CreatorSubscriptionStatus), default=CreatorSubscriptionStatus.TRIALING
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    current_period_end: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="creator_subscriptions")
+    plan: Mapped[CreatorPlan] = relationship(back_populates="creator_subscriptions")
+
+
+class PlatformMonetisationSettings(Base):
+    """Singleton table storing platform-level revenue share configuration."""
+
+    __tablename__ = "platform_monetisation_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    platform_fee_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("15.00"))
+    minimum_platform_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("1.00"))
+    currency_code: Mapped[str] = mapped_column(String(3), default="GBP")
+    stripe_publishable_key: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    stripe_secret_key: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

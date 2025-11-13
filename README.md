@@ -11,6 +11,7 @@ Nichifier is a cloneable business intelligence platform for curating industry-sp
 - Secure authentication with JWT-backed session cookies and password hashing.
 - Modular FastAPI backend with SQLAlchemy ORM and Pydantic schemas.
 - Responsive UI using Bootstrap 5 with custom theming.
+- End-to-end monetisation controls including curator subscription plans, Stripe key storage, and automatic platform fee splits.
 - Comprehensive logging for debugging and monitoring.
 
 ## Repository Layout
@@ -113,7 +114,14 @@ Replace `you@example.com` with the email address you registered. Use `--role adm
 2. Create an account and sign in to access dashboards.
 3. Platform admins can configure themes, cadences, and manage users.
 4. Niche admins can curate niche pages, adjust AI tone/style, and schedule newsletters.
-5. Subscribers can manage subscriptions and access premium reports.
+5. Subscribers can manage subscriptions and access premium reports with transparent billing summaries.
+
+### Monetisation controls
+
+- Platform administrators can access the hidden monetisation laboratory at `/admin/monetisation` (requires admin login).
+- Use the “Platform fee configuration” form to set the revenue share and Stripe keys.
+- Define curator plans (free, basic, pro, etc.) to control monthly pricing, niche limits, and platform fee discounts.
+- Creators see these plans on their dashboard, and subscriber billing automatically applies the configured platform fees with the minimum charge enforced each cycle.
 
 On-screen instructions across the app guide users; the README is primarily for operators and developers.
 

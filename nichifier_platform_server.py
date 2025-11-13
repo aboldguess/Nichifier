@@ -27,6 +27,11 @@ from app.routers import admin as admin_router
 from app.routers import auth as auth_router
 from app.routers import niches as niches_router
 from app.routers import subscriptions as subscriptions_router
+from app.services import (
+    count_active_niches_for_user,
+    get_active_creator_subscription,
+    get_or_create_platform_settings,
+)
 from app.security import get_current_user
 
 LOGGER = get_logger(__name__)
@@ -77,6 +82,15 @@ def create_app() -> FastAPI:
         session: AsyncSession = Depends(get_db_session),
     ):
         niches = (await session.execute(select(Niche))).scalars().all()
+        creator_subscription = await get_active_creator_subscription(session, user.id)
+        monetisation_settings = await get_or_create_platform_settings(session)
+        plan_usage = None
+        if creator_subscription and creator_subscription.plan:
+            owned = await count_active_niches_for_user(session, user.id)
+            plan_usage = {
+                "used": owned,
+                "limit": creator_subscription.plan.max_niches,
+            }
         return TEMPLATES.TemplateResponse(
             "dashboard.html",
             {
@@ -86,6 +100,10 @@ def create_app() -> FastAPI:
                 "role": user.role.value,
                 "is_admin": user.role == UserRole.ADMIN,
                 "is_niche_admin": user.role == UserRole.NICHE_ADMIN,
+                "creator_subscription": creator_subscription,
+                "creator_plan": creator_subscription.plan if creator_subscription else None,
+                "monetisation_settings": monetisation_settings,
+                "plan_usage": plan_usage,
             },
         )
 
