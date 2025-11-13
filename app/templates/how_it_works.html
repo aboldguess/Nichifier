@@ -1,0 +1,72 @@
+{#
+how_it_works.html
+==================
+Mini-README: Onboarding guide explaining the Nichifier workflow. Extends the base layout,
+shows process steps with actionable guidance, operational checklist, and contact prompt to
+help visitors understand the platform without needing external documentation.
+#}
+{% extends "base.html" %}
+
+{% block instructions %}
+<div class="alert alert-primary" role="alert">
+  New to Nichifier? Follow the checklist below to go from curious visitor to publishing
+  your first paid briefing. Each step links to the relevant screen so you never lose
+  context.
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="row g-4 align-items-stretch">
+  <div class="col-lg-7">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h1 class="card-title h3 fw-bold mb-3">End-to-end creator journey</h1>
+        <p class="text-muted">
+          We designed Nichifier so you can experiment for free, then scale to a premium
+          intelligence product with confidence. Work through the milestones in order – the
+          dashboard will reflect your progress automatically.
+        </p>
+        <div class="list-group list-group-flush">
+          {% for step in onboarding_steps %}
+          <div class="list-group-item py-4">
+            <h2 class="h5 fw-semibold mb-2">{{ step.title }}</h2>
+            <p class="mb-2">{{ step.description }}</p>
+            <div class="small text-primary fw-semibold">{{ step.action }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h5 fw-bold mb-3">Operational double-checks</h2>
+        <p class="text-muted">
+          Before you launch, make sure these foundational items are complete. The Admin
+          area surfaces alerts if anything is missing.
+        </p>
+        <ul class="list-unstyled">
+          {% for check in operational_checks %}
+          <li class="mb-3">
+            <div class="fw-semibold">{{ check.name }}</div>
+            <div class="text-muted small">{{ check.detail }}</div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="card shadow-sm border-success">
+      <div class="card-body">
+        <h2 class="h5 fw-bold text-success">Need strategic support?</h2>
+        <p class="mb-3">
+          Our onboarding team offers live 1:1 walkthroughs, data migration help, and AI
+          tone calibration. Book a session directly from your dashboard once you have
+          created an account.
+        </p>
+        <a class="btn btn-success w-100" href="/auth/register">Book your onboarding call</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -82,6 +82,82 @@ def create_app() -> FastAPI:
             {"request": request, "title": "Upgrade to Premium"},
         )
 
+    @app.get("/how-it-works", response_class=HTMLResponse)
+    async def how_it_works(request: Request):
+        """Guide prospective users through the end-to-end Nichifier workflow."""
+
+        onboarding_steps = [
+            {
+                "title": "1. Create your free Nichifier account",
+                "description": (
+                    "Sign up with your email address and confirm your details. "
+                    "The platform immediately provisions secure defaults and "
+                    "enables newsletter subscriptions."
+                ),
+                "action": "Use the Create account button in the navigation bar.",
+            },
+            {
+                "title": "2. Subscribe to niche intelligence",
+                "description": (
+                    "Browse the public niche catalogue and subscribe to free daily "
+                    "briefings. This keeps you informed while you prepare your own "
+                    "niche launch."
+                ),
+                "action": "Click 'Subscribe to a free daily briefing' on the home page.",
+            },
+            {
+                "title": "3. Upgrade when you're ready to curate",
+                "description": (
+                    "Upgrade to a creator plan to unlock the niche editor, AI tone "
+                    "configuration, and monetisation controls."
+                ),
+                "action": "Visit the Premium Upgrade screen from the navigation menu.",
+            },
+            {
+                "title": "4. Configure your first niche",
+                "description": (
+                    "Use the guided niche editor to define your audience, pricing, "
+                    "and branding. The platform validates each step and tracks "
+                    "completion so nothing gets missed."
+                ),
+                "action": "Select Add Niche → Configure niche to launch your workspace.",
+            },
+            {
+                "title": "5. Publish and iterate",
+                "description": (
+                    "Once approved, Nichifier publishes your niche storefront, sends "
+                    "the inaugural briefing, and surfaces analytics on the dashboard. "
+                    "Iterate using feedback and our learning resources."
+                ),
+                "action": "Monitor the Dashboard for engagement metrics and optimisation tips.",
+            },
+        ]
+
+        operational_checks = [
+            {
+                "name": "Team roles",
+                "detail": "Assign collaborator roles via Manage Users before launch to avoid access gaps.",
+            },
+            {
+                "name": "Compliance",
+                "detail": "Upload required policies and ensure newsletter compliance from the Dashboard checklist.",
+            },
+            {
+                "name": "Monetisation",
+                "detail": "Connect your payment processor under Subscription Details to enable paid reports.",
+            },
+        ]
+
+        return TEMPLATES.TemplateResponse(
+            "how_it_works.html",
+            {
+                "request": request,
+                "title": "How Nichifier Works",
+                "onboarding_steps": onboarding_steps,
+                "operational_checks": operational_checks,
+            },
+        )
+
     @app.get("/dashboard", response_class=HTMLResponse)
     async def dashboard(
         request: Request,
