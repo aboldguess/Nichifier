@@ -111,7 +111,7 @@ def create_app() -> FastAPI:
                     "Upgrade to a creator plan to unlock the niche editor, AI tone "
                     "configuration, and monetisation controls."
                 ),
-                "action": "Visit the Premium Upgrade screen from the navigation menu.",
+                "action": "Use the Premium Upgrade option in the navigation bar to open the upgrade guide.",
             },
             {
                 "title": "4. Configure your first niche",

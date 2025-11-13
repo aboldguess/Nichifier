@@ -39,10 +39,11 @@ handling, Bootstrap 5 integration, and profile dropdown interactions.
             <li class="nav-item"><a class="nav-link" href="/how-it-works">How it works</a></li>
             <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
             <li class="nav-item"><a class="nav-link" href="/subscriptions/manage">Subscriptions</a></li>
+            {# Present upgrade link for prospective creators while retaining admin shortcut. #}
             {% if user and user.role in ['admin', 'niche_admin'] %}
             <li class="nav-item"><a class="nav-link" href="/niches/manage/create">Add Niche</a></li>
             {% else %}
-            <li class="nav-item"><a class="nav-link" href="/premium">Add Niche</a></li>
+            <li class="nav-item"><a class="nav-link" href="/premium">Premium Upgrade</a></li>
             {% endif %}
             <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Admin</a></li>
           </ul>
