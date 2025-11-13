@@ -58,7 +58,10 @@ scripts/                  # Helper scripts for environment setup.
 # 4. Initialise the database (creates SQLite file and tables)
  python nichifier_platform_server.py --init-db
 
-# 5. Run the development server on a chosen port (default 8000)
+# 5. Promote yourself to niche admin so you can curate content
+ python nichifier_platform_server.py --promote-user you@example.com --role niche_admin
+
+# 6. Run the development server on a chosen port (default 8000)
  python nichifier_platform_server.py --host 0.0.0.0 --port 8080 --reload
 ```
 
@@ -80,7 +83,10 @@ scripts/                  # Helper scripts for environment setup.
 # 4. Initialise the database
  python nichifier_platform_server.py --init-db
 
-# 5. Run the development server
+# 5. Promote yourself to niche admin
+ python nichifier_platform_server.py --promote-user you@example.com --role niche_admin
+
+# 6. Run the development server
  python nichifier_platform_server.py --host 0.0.0.0 --port 8080 --reload
 ```
 
@@ -90,6 +96,16 @@ scripts/                  # Helper scripts for environment setup.
 - `scripts/setup_environment.ps1` – PowerShell equivalent for Windows.
 
 Run the scripts with execution permission (Linux/macOS: `chmod +x scripts/setup_environment.sh && ./scripts/setup_environment.sh`). On Windows, ensure script execution is permitted (`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`).
+
+## Operator CLI workflow
+
+To unlock the niche editor or full admin dashboard for your own account, run the exact promotion command after registering your user:
+
+```bash
+python nichifier_platform_server.py --promote-user you@example.com --role niche_admin
+```
+
+Replace `you@example.com` with the email address you registered. Use `--role admin` if you require full platform administration; both roles automatically mark the account as premium for feature access.
 
 ## Usage Overview
 

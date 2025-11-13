@@ -38,7 +38,11 @@ handling, Bootstrap 5 integration, and profile dropdown interactions.
             <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
             <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
             <li class="nav-item"><a class="nav-link" href="/subscriptions/manage">Subscriptions</a></li>
+            {% if user and user.role in ['admin', 'niche_admin'] %}
+            <li class="nav-item"><a class="nav-link" href="/niches/manage/create">Add Niche</a></li>
+            {% else %}
             <li class="nav-item"><a class="nav-link" href="/premium">Add Niche</a></li>
+            {% endif %}
             <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Admin</a></li>
           </ul>
           <div class="d-flex align-items-center gap-3">
