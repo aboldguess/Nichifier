@@ -14,5 +14,9 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e .
 
-echo "Environment ready. Activate with 'source .venv/bin/activate' then run the server using"
-echo "python nichifier_platform_server.py --init-db && python nichifier_platform_server.py --reload"
+cat <<'EOF'
+Environment ready. Activate with 'source .venv/bin/activate' then run:
+  python nichifier_platform_server.py --init-db
+  python nichifier_platform_server.py --promote-user you@example.com --role admin
+  python nichifier_platform_server.py --reload
+EOF

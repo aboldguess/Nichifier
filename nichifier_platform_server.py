@@ -21,8 +21,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import get_logger, get_settings
-from app.database import get_db_session, init_db
-from app.models import Niche, UserRole
+from app.database import AsyncSessionMaker, get_db_session, init_db
+from app.models import Niche, User, UserRole
 from app.routers import admin as admin_router
 from app.routers import auth as auth_router
 from app.routers import niches as niches_router
@@ -108,7 +108,48 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reload", action="store_true", help="Enable autoreload for development")
     parser.add_argument("--log-level", default="info", help="Logging level for Uvicorn")
     parser.add_argument("--init-db", action="store_true", help="Initialise the database and exit")
-    return parser.parse_args()
+    parser.add_argument(
+        "--promote-user",
+        metavar="EMAIL",
+        help="Promote the specified user (by email) to an elevated role and exit",
+    )
+    parser.add_argument(
+        "--role",
+        choices=[role.value for role in UserRole],
+        help="Role to assign when using --promote-user",
+    )
+
+    args = parser.parse_args()
+    if args.promote_user and not args.role:
+        parser.error("--promote-user requires --role to be supplied")
+
+    return args
+
+
+async def promote_user(email: str, role: UserRole) -> None:
+    """Elevate a user's privileges using an operational AsyncSession workflow."""
+
+    LOGGER.info("Promoting user %s to role %s", email, role.value)
+
+    async with AsyncSessionMaker() as session:
+        # Look up the user securely by unique email address.
+        result = await session.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+
+        if user is None:
+            LOGGER.error("No user found with email %s", email)
+            raise SystemExit(1)
+
+        user.role = role
+        user.is_premium = role in (UserRole.ADMIN, UserRole.NICHE_ADMIN)
+
+        await session.commit()
+        LOGGER.info(
+            "Successfully promoted %s to %s (premium=%s)",
+            email,
+            role.value,
+            user.is_premium,
+        )
 
 
 async def initialise_database() -> None:
@@ -123,8 +164,17 @@ def main() -> None:
     """CLI entrypoint for running the ASGI server."""
 
     args = parse_args()
+    performed_cli_action = False
+
     if args.init_db:
         asyncio.run(initialise_database())
+        performed_cli_action = True
+
+    if args.promote_user:
+        asyncio.run(promote_user(args.promote_user, UserRole(args.role)))
+        performed_cli_action = True
+
+    if performed_cli_action:
         return
 
     uvicorn.run(

@@ -26,7 +26,7 @@ quick actions, and onboarding instructions for premium upgrades.
               <h5>Launch a new niche</h5>
               <p>{% if is_niche_admin or is_admin %}Premium users can curate bespoke niches with custom AI guidance.{% else %}Upgrade to premium to unlock niche creation tools.{% endif %}</p>
               {% if is_niche_admin or is_admin %}
-              <a class="btn btn-outline-success" href="/niches/manage/create">Design a niche</a>
+              <a class="btn btn-outline-success" href="/niches/manage/create">Add Niche</a>
               {% else %}
               <a class="btn btn-outline-success" href="/premium">See upgrade options</a>
               {% endif %}
