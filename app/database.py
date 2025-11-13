@@ -42,17 +42,32 @@ async def apply_schema_upgrades() -> None:
     """Apply idempotent schema upgrades to keep SQLite in sync with models."""
 
     async with engine.begin() as conn:
-        await _ensure_niches_currency_code(conn)
+        await _ensure_niches_columns(conn)
 
 
-async def _ensure_niches_currency_code(conn: AsyncConnection) -> None:
-    """Add the `currency_code` column to `niches` if it is missing."""
+async def _ensure_niches_columns(conn: AsyncConnection) -> None:
+    """Backfill missing columns on the ``niches`` table for legacy databases."""
 
+    # Pull the existing schema information up front so that we only interrogate
+    # SQLite once. The pragma returns rows in the shape (cid, name, type, ...)
     pragma_result = await conn.exec_driver_sql("PRAGMA table_info(niches)")
-    column_names = {row[1] for row in pragma_result}
-    if "currency_code" in column_names:
-        return
+    existing_columns = {row[1] for row in pragma_result}
 
-    await conn.exec_driver_sql(
-        "ALTER TABLE niches ADD COLUMN currency_code VARCHAR(3) NOT NULL DEFAULT 'GBP'"
-    )
+    # Map column names to the SQL needed to add them. Each definition mirrors the
+    # ORM model defaults so that older databases remain compatible with the
+    # current application expectations.
+    column_definitions = {
+        "currency_code": "currency_code VARCHAR(3) NOT NULL DEFAULT 'GBP'",
+        "newsletter_cadence": "newsletter_cadence VARCHAR(32) NOT NULL DEFAULT 'monthly'",
+        "report_cadence": "report_cadence VARCHAR(32) NOT NULL DEFAULT 'monthly'",
+        "voice_instructions": "voice_instructions TEXT NOT NULL DEFAULT ''",
+        "style_guide": "style_guide TEXT NOT NULL DEFAULT ''",
+    }
+
+    for column_name, ddl in column_definitions.items():
+        if column_name in existing_columns:
+            continue
+
+        # SQLite only supports adding a single column at a time via ALTER TABLE,
+        # so we iterate and add each missing column individually.
+        await conn.exec_driver_sql(f"ALTER TABLE niches ADD COLUMN {ddl}")
