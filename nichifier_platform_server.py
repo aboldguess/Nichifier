@@ -21,7 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import get_logger, get_settings
-from app.database import AsyncSessionMaker, get_db_session, init_db
+from app.database import AsyncSessionMaker, apply_schema_upgrades, get_db_session, init_db
 from app.models import Niche, User, UserRole
 from app.routers import admin as admin_router
 from app.routers import auth as auth_router
@@ -53,6 +53,13 @@ def create_app() -> FastAPI:
     app.include_router(niches_router.router)
     app.include_router(subscriptions_router.router)
     app.include_router(admin_router.router)
+
+    @app.on_event("startup")
+    async def ensure_database_schema() -> None:
+        """Create tables and patch any lightweight schema changes on boot."""
+
+        await init_db()
+        await apply_schema_upgrades()
 
     @app.get("/", response_class=HTMLResponse)
     async def splash_page(request: Request, session: AsyncSession = Depends(get_db_session)):
@@ -175,6 +182,7 @@ async def initialise_database() -> None:
 
     LOGGER.info("Initialising database...")
     await init_db()
+    await apply_schema_upgrades()
     LOGGER.info("Database initialisation complete")
 
 
