@@ -20,7 +20,16 @@ niche, emphasising transparency over billing status.
             <div class="d-flex justify-content-between align-items-center">
               <div>
                 <strong>{{ subscription.niche.name }}</strong>
-                <div class="small text-muted">Newsletter: {{ 'Yes' if subscription.wants_newsletter else 'No' }} | Reports: {{ 'Yes' if subscription.wants_report else 'No' }}</div>
+                <div class="small text-muted">
+                  Newsletter: {{ 'Yes' if subscription.wants_newsletter else 'No' }} |
+                  Reports: {{ 'Yes' if subscription.wants_report else 'No' }} |
+                  Status: {{ subscription.status|capitalize }}
+                </div>
+                <div class="small text-muted">
+                  Billing: {{ subscription.currency_code }} {{ '%.2f'|format(subscription.gross_amount) }} / {{ subscription.billing_cadence|capitalize }}
+                  &middot; Platform fee {{ subscription.currency_code }} {{ '%.2f'|format(subscription.platform_fee_amount) }}
+                  &middot; Creator payout {{ subscription.currency_code }} {{ '%.2f'|format(subscription.creator_payout_amount) }}
+                </div>
               </div>
               <form method="post" action="/subscriptions/delete/{{ subscription.id }}">
                 <button class="btn btn-sm btn-danger" type="submit">Cancel</button>
@@ -43,7 +52,11 @@ niche, emphasising transparency over billing status.
             <label class="form-label" for="niche_id">Select niche</label>
             <select class="form-select" id="niche_id" name="niche_id" required>
               {% for niche in niches %}
-              <option value="{{ niche.id }}">{{ niche.name }}</option>
+              <option value="{{ niche.id }}">
+                {{ niche.name }} — Newsletter {% if niche.newsletter_price == 0 %}FREE{% else %}{{ niche.currency_code }} {{ '%.2f'|format(niche.newsletter_price) }}{% endif %}
+                ({{ niche.newsletter_cadence|capitalize }}) | Reports {% if niche.report_price == 0 %}FREE{% else %}{{ niche.currency_code }} {{ '%.2f'|format(niche.report_price) }}{% endif %}
+                ({{ niche.report_cadence|capitalize }})
+              </option>
               {% endfor %}
             </select>
           </div>
@@ -54,6 +67,9 @@ niche, emphasising transparency over billing status.
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="wants_report" name="wants_report" value="true" />
             <label class="form-check-label" for="wants_report">Premium reports (paid)</label>
+          </div>
+          <div class="alert alert-secondary" role="alert">
+            Premium selections are billed via your saved payment method. The platform automatically applies its fee before paying curators.
           </div>
           <button class="btn btn-primary" type="submit">Save subscription</button>
         </form>

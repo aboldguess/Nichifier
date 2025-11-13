@@ -24,7 +24,16 @@ quick actions, and onboarding instructions for premium upgrades.
           <div class="col-md-6">
             <div class="p-3 border rounded bg-light">
               <h5>Launch a new niche</h5>
-              <p>{% if is_niche_admin or is_admin %}Premium users can curate bespoke niches with custom AI guidance.{% else %}Upgrade to premium to unlock niche creation tools.{% endif %}</p>
+              <p>
+                {% if creator_plan %}
+                {{ creator_plan.display_name }} plan holders can launch up to {{ plan_usage.limit }} niche{{ '' if plan_usage.limit == 1 else 's' }}.
+                You currently manage {{ plan_usage.used if plan_usage else 0 }}.
+                {% elif is_niche_admin or is_admin %}
+                Premium users can curate bespoke niches with custom AI guidance.
+                {% else %}
+                Upgrade to premium to unlock niche creation tools.
+                {% endif %}
+              </p>
               {% if is_niche_admin or is_admin %}
               <a class="btn btn-outline-success" href="/niches/manage/create">Add Niche</a>
               {% else %}
@@ -61,6 +70,18 @@ quick actions, and onboarding instructions for premium upgrades.
         <ul class="list-group list-group-flush">
           <li class="list-group-item">Role: {{ role }}</li>
           <li class="list-group-item">Premium status: {{ 'Active' if user.is_premium else 'Free tier' }}</li>
+          <li class="list-group-item">
+            Curator plan:
+            {% if creator_plan %}
+            {{ creator_plan.display_name }} ({{ plan_usage.used if plan_usage else 0 }}/{{ creator_plan.max_niches }} niches in play)
+            {% else %}
+            Not enrolled — explore plans from the profile menu
+            {% endif %}
+          </li>
+          <li class="list-group-item">
+            Platform fee: {{ monetisation_settings.platform_fee_percent }}% with a minimum of
+            {{ monetisation_settings.currency_code }} {{ '%.2f'|format(monetisation_settings.minimum_platform_fee) }} per billing cycle
+          </li>
           <li class="list-group-item">Registered email: {{ user.email }}</li>
         </ul>
       </div>

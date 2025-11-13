@@ -28,10 +28,26 @@ instructions, and subscription prompts.
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h5 class="card-title">Subscription options</h5>
-        <p>Daily newsletter: <strong>FREE</strong></p>
-        <p>Reports: <strong>£{{ '%.2f'|format(niche.report_price or 0) }}</strong></p>
-        <a class="btn btn-primary w-100 mb-2" href="/auth/register">Subscribe free newsletter</a>
-        <a class="btn btn-outline-primary w-100" href="/auth/register">Upgrade for premium reports</a>
+        {% set newsletter_price = niche.newsletter_price or 0 %}
+        {% set report_price = niche.report_price or 0 %}
+        {% set currency = niche.currency_code %}
+        <p>
+          Newsletter ({{ niche.newsletter_cadence|capitalize }}):
+          <strong>
+            {% if newsletter_price == 0 %}FREE{% else %}{{ currency }} {{ '%.2f'|format(newsletter_price) }}{% endif %}
+          </strong>
+        </p>
+        <p>
+          Reports ({{ niche.report_cadence|capitalize }}):
+          <strong>
+            {% if report_price == 0 %}FREE{% else %}{{ currency }} {{ '%.2f'|format(report_price) }}{% endif %}
+          </strong>
+        </p>
+        <a class="btn btn-primary w-100 mb-2" href="/auth/register">Subscribe for newsletter</a>
+        <a class="btn btn-outline-primary w-100" href="/auth/register">Unlock premium reports</a>
+        <div class="small text-muted mt-2">
+          Paid options include secure billing via Stripe with our platform fee transparently itemised on every invoice.
+        </div>
       </div>
     </div>
     <div class="card shadow-sm">

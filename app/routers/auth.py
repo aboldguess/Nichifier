@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db_session
 from ..logger import get_logger
-from ..models import User, UserRole
+from ..models import BillingProfile, User, UserRole
 from ..security import (
     PASSWORD_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
@@ -81,7 +81,13 @@ async def register_user(
     hashed_password = get_password_hash(password)
     user = User(email=email, hashed_password=hashed_password, full_name=full_name)
     session.add(user)
+    await session.flush()
+
+    billing_profile = BillingProfile(user_id=user.id)
+    session.add(billing_profile)
     await session.commit()
+
+    LOGGER.info("Registered user %s with billing profile %s", email, billing_profile.id)
 
     return TEMPLATES.TemplateResponse(
         "login.html",

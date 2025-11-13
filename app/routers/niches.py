@@ -5,6 +5,7 @@ niche administrators to create, update, or delete niche configuration. Provides 
 template-powered management pages and JSON APIs for programmatic use.
 """
 
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
@@ -24,6 +25,8 @@ from ..services import (
     fetch_all_niches,
     fetch_niche_by_id,
     update_niche as service_update_niche,
+    count_active_niches_for_user,
+    get_active_creator_subscription,
 )
 
 TEMPLATES = Jinja2Templates(directory="app/templates")
@@ -53,6 +56,9 @@ def _build_editor_context(
     form_values: dict[str, Any] | None = None,
     error_message: str | None = None,
     delete_action: str | None = None,
+    creator_plan: Any | None = None,
+    plan_limit_message: str | None = None,
+    plan_locked: bool = False,
 ) -> dict[str, Any]:
     """Construct the template context shared by create and edit pages."""
 
@@ -67,7 +73,20 @@ def _build_editor_context(
         "form_values": form_values or {},
         "error_message": error_message,
         "delete_action": delete_action,
+        "creator_plan": creator_plan,
+        "plan_limit_message": plan_limit_message,
+        "plan_locked": plan_locked,
     }
+
+
+def _parse_decimal(value: str) -> Decimal:
+    """Convert a string to a two-decimal-place ``Decimal`` or raise ``ValueError``."""
+
+    try:
+        decimal_value = Decimal(str(value or "0")).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError) as exc:  # noqa: BLE001 - value originates from form input
+        raise ValueError("Invalid price provided. Please use numbers only.") from exc
+    return decimal_value
 
 
 def _prepare_form_payload(
@@ -76,8 +95,11 @@ def _prepare_form_payload(
     short_description: str,
     detailed_description: str,
     splash_image_url: str,
-    newsletter_price: float,
-    report_price: float,
+    newsletter_price: Decimal,
+    report_price: Decimal,
+    currency_code: str,
+    newsletter_cadence: str,
+    report_cadence: str,
     voice_instructions: str,
     style_guide: str,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -90,6 +112,9 @@ def _prepare_form_payload(
         "splash_image_url": _normalize_optional_text(splash_image_url),
         "newsletter_price": newsletter_price,
         "report_price": report_price,
+        "currency_code": currency_code,
+        "newsletter_cadence": newsletter_cadence,
+        "report_cadence": report_cadence,
         "voice_instructions": _normalize_optional_text(voice_instructions),
         "style_guide": _normalize_optional_text(style_guide),
     }
@@ -99,8 +124,11 @@ def _prepare_form_payload(
         "short_description": payload["short_description"],
         "detailed_description": detailed_description.strip(),
         "splash_image_url": splash_image_url.strip(),
-        "newsletter_price": newsletter_price,
-        "report_price": report_price,
+        "newsletter_price": f"{newsletter_price:.2f}",
+        "report_price": f"{report_price:.2f}",
+        "currency_code": currency_code,
+        "newsletter_cadence": newsletter_cadence,
+        "report_cadence": report_cadence,
         "voice_instructions": voice_instructions.strip(),
         "style_guide": style_guide.strip(),
     }
@@ -117,6 +145,28 @@ def _ensure_management_access(niche: Niche, user: User) -> None:
         return
     LOGGER.warning("User %s attempted to manage niche %s without permission", user.email, niche.id)
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not manage this niche.")
+
+
+async def _creator_plan_context(
+    session: AsyncSession,
+    user: User,
+) -> tuple[Any | None, str | None, bool]:
+    """Return contextual information about a user's curator plan and quota."""
+
+    if user.role == UserRole.ADMIN:
+        return None, "Admins can create unlimited niches.", False
+
+    creator_subscription = await get_active_creator_subscription(session, user.id)
+    if creator_subscription is None or creator_subscription.plan is None:
+        return None, "Upgrade to a curator plan from your dashboard to unlock niche creation.", True
+
+    plan = creator_subscription.plan
+    owned_niches = await count_active_niches_for_user(session, user.id)
+    remaining = max(plan.max_niches - owned_niches, 0)
+    message = (
+        f"{plan.display_name} allows {plan.max_niches} niches. You have {remaining} slot(s) remaining this cycle."
+    )
+    return plan, message, remaining <= 0
 
 
 @router.get("/")
@@ -142,15 +192,20 @@ async def niche_detail(niche_id: int, request: Request, session: AsyncSession = 
 async def create_niche_form(
     request: Request,
     user: User = Depends(require_role([UserRole.ADMIN, UserRole.NICHE_ADMIN])),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Render the form for creating a niche."""
 
+    creator_plan, plan_message, plan_locked = await _creator_plan_context(session, user)
     context = _build_editor_context(
         request,
         title="Create Niche",
         form_action="/niches/manage/create",
         submit_label="Create niche",
         user=user,
+        creator_plan=creator_plan,
+        plan_limit_message=plan_message,
+        plan_locked=plan_locked,
     )
     return TEMPLATES.TemplateResponse("niche_editor.html", context)
 
@@ -162,8 +217,11 @@ async def create_niche(
     short_description: str = Form(...),
     detailed_description: str = Form(""),
     splash_image_url: str = Form(""),
-    newsletter_price: float = Form(0),
-    report_price: float = Form(0),
+    newsletter_price: str = Form("0"),
+    report_price: str = Form("0"),
+    currency_code: str = Form("GBP"),
+    newsletter_cadence: str = Form("monthly"),
+    report_cadence: str = Form("monthly"),
     voice_instructions: str = Form(""),
     style_guide: str = Form(""),
     user: User = Depends(require_role([UserRole.ADMIN, UserRole.NICHE_ADMIN])),
@@ -171,13 +229,68 @@ async def create_niche(
 ):
     """Persist a new niche in the database."""
 
+    creator_plan, plan_message, plan_locked = await _creator_plan_context(session, user)
+    raw_form_values = {
+        "name": name,
+        "short_description": short_description,
+        "detailed_description": detailed_description,
+        "splash_image_url": splash_image_url,
+        "newsletter_price": newsletter_price,
+        "report_price": report_price,
+        "currency_code": currency_code,
+        "newsletter_cadence": newsletter_cadence,
+        "report_cadence": report_cadence,
+        "voice_instructions": voice_instructions,
+        "style_guide": style_guide,
+    }
+
+    if plan_locked:
+        context = _build_editor_context(
+            request,
+            title="Create Niche",
+            form_action="/niches/manage/create",
+            submit_label="Create niche",
+            user=user,
+            form_values=raw_form_values,
+            error_message=plan_message,
+            creator_plan=creator_plan,
+            plan_limit_message=plan_message,
+            plan_locked=plan_locked,
+        )
+        return TEMPLATES.TemplateResponse(
+            "niche_editor.html", context, status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        newsletter_price_decimal = _parse_decimal(newsletter_price)
+        report_price_decimal = _parse_decimal(report_price)
+    except ValueError as exc:
+        context = _build_editor_context(
+            request,
+            title="Create Niche",
+            form_action="/niches/manage/create",
+            submit_label="Create niche",
+            user=user,
+            form_values=raw_form_values,
+            error_message=str(exc),
+            creator_plan=creator_plan,
+            plan_limit_message=plan_message,
+            plan_locked=plan_locked,
+        )
+        return TEMPLATES.TemplateResponse(
+            "niche_editor.html", context, status_code=status.HTTP_400_BAD_REQUEST
+        )
+
     payload, form_values = _prepare_form_payload(
         name=name,
         short_description=short_description,
         detailed_description=detailed_description,
         splash_image_url=splash_image_url,
-        newsletter_price=newsletter_price,
-        report_price=report_price,
+        newsletter_price=newsletter_price_decimal,
+        report_price=report_price_decimal,
+        currency_code=currency_code,
+        newsletter_cadence=newsletter_cadence,
+        report_cadence=report_cadence,
         voice_instructions=voice_instructions,
         style_guide=style_guide,
     )
@@ -193,6 +306,8 @@ async def create_niche(
             user=user,
             form_values=form_values,
             error_message=str(exc),
+            creator_plan=creator_plan,
+            plan_limit_message=plan_message,
         )
         return TEMPLATES.TemplateResponse(
             "niche_editor.html", context, status_code=status.HTTP_400_BAD_REQUEST
@@ -216,6 +331,7 @@ async def edit_niche_form(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Niche not found")
     _ensure_management_access(niche, user)
 
+    creator_plan, plan_message, _ = await _creator_plan_context(session, user)
     context = _build_editor_context(
         request,
         title=f"Edit {niche.name}",
@@ -225,6 +341,8 @@ async def edit_niche_form(
         niche=niche,
         is_update=True,
         delete_action=f"/niches/manage/{niche.id}/delete",
+        creator_plan=creator_plan,
+        plan_limit_message=plan_message,
     )
     return TEMPLATES.TemplateResponse("niche_editor.html", context)
 
@@ -237,8 +355,11 @@ async def update_niche(
     short_description: str = Form(...),
     detailed_description: str = Form(""),
     splash_image_url: str = Form(""),
-    newsletter_price: float = Form(0),
-    report_price: float = Form(0),
+    newsletter_price: str = Form("0"),
+    report_price: str = Form("0"),
+    currency_code: str = Form("GBP"),
+    newsletter_cadence: str = Form("monthly"),
+    report_cadence: str = Form("monthly"),
     voice_instructions: str = Form(""),
     style_guide: str = Form(""),
     user: User = Depends(require_role([UserRole.ADMIN, UserRole.NICHE_ADMIN])),
@@ -251,13 +372,53 @@ async def update_niche(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Niche not found")
     _ensure_management_access(niche, user)
 
+    creator_plan, plan_message, _ = await _creator_plan_context(session, user)
+    raw_form_values = {
+        "name": name,
+        "short_description": short_description,
+        "detailed_description": detailed_description,
+        "splash_image_url": splash_image_url,
+        "newsletter_price": newsletter_price,
+        "report_price": report_price,
+        "currency_code": currency_code,
+        "newsletter_cadence": newsletter_cadence,
+        "report_cadence": report_cadence,
+        "voice_instructions": voice_instructions,
+        "style_guide": style_guide,
+    }
+
+    try:
+        newsletter_price_decimal = _parse_decimal(newsletter_price)
+        report_price_decimal = _parse_decimal(report_price)
+    except ValueError as exc:
+        context = _build_editor_context(
+            request,
+            title=f"Edit {niche.name}",
+            form_action=f"/niches/manage/{niche.id}/edit",
+            submit_label="Save changes",
+            user=user,
+            niche=niche,
+            is_update=True,
+            form_values=raw_form_values,
+            error_message=str(exc),
+            delete_action=f"/niches/manage/{niche.id}/delete",
+            creator_plan=creator_plan,
+            plan_limit_message=plan_message,
+        )
+        return TEMPLATES.TemplateResponse(
+            "niche_editor.html", context, status_code=status.HTTP_400_BAD_REQUEST
+        )
+
     payload, form_values = _prepare_form_payload(
         name=name,
         short_description=short_description,
         detailed_description=detailed_description,
         splash_image_url=splash_image_url,
-        newsletter_price=newsletter_price,
-        report_price=report_price,
+        newsletter_price=newsletter_price_decimal,
+        report_price=report_price_decimal,
+        currency_code=currency_code,
+        newsletter_cadence=newsletter_cadence,
+        report_cadence=report_cadence,
         voice_instructions=voice_instructions,
         style_guide=style_guide,
     )
@@ -276,6 +437,8 @@ async def update_niche(
             form_values=form_values,
             error_message=str(exc),
             delete_action=f"/niches/manage/{niche.id}/delete",
+            creator_plan=creator_plan,
+            plan_limit_message=plan_message,
         )
         return TEMPLATES.TemplateResponse(
             "niche_editor.html", context, status_code=status.HTTP_400_BAD_REQUEST
@@ -345,6 +508,10 @@ async def api_create_niche(
     session: AsyncSession = Depends(get_db_session),
 ) -> Niche:
     """API endpoint for creating niches."""
+
+    _, plan_message, plan_locked = await _creator_plan_context(session, user)
+    if plan_locked:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=plan_message)
 
     try:
         niche = await service_create_niche(session, payload.model_dump(exclude_none=True), owner_id=user.id)

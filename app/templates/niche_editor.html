@@ -12,6 +12,10 @@ offers a guarded delete workflow when editing existing niches.
 {% set page_title = title or 'Manage niche' %}
 {% set is_update_flow = is_update or False %}
 {% set delete_url = delete_action or None %}
+{% set currency_value = values.get('currency_code', niche.currency_code if niche else 'GBP') %}
+{% set newsletter_cadence_value = values.get('newsletter_cadence', niche.newsletter_cadence if niche else 'monthly') %}
+{% set report_cadence_value = values.get('report_cadence', niche.report_cadence if niche else 'monthly') %}
+{% set cadences = ['daily', 'weekly', 'monthly', 'quarterly'] %}
 <div class="row justify-content-center">
   <div class="col-lg-10">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
@@ -24,6 +28,14 @@ offers a guarded delete workflow when editing existing niches.
       </div>
       <span class="badge bg-primary-subtle text-primary fw-semibold">Niche management</span>
     </div>
+    {% if plan_limit_message %}
+    <div class="alert {{ 'alert-danger' if plan_locked else 'alert-info' }}" role="alert">
+      {{ plan_limit_message }}
+      {% if plan_locked %}
+      <br />Upgrade your curator plan or retire an existing niche to continue.
+      {% endif %}
+    </div>
+    {% endif %}
     {% if error_message %}
     <div class="alert alert-danger" role="alert">
       {{ error_message }}
@@ -73,28 +85,43 @@ offers a guarded delete workflow when editing existing niches.
         <div class="form-text">Share the audience, pain points, and benefits so AI understands the context.</div>
       </div>
       <div class="col-md-6">
-        <label class="form-label" for="newsletter_price">Newsletter price (£)</label>
-        {% set newsletter_price_value = values.get('newsletter_price', niche.newsletter_price if niche else 0) %}
+        <label class="form-label" for="currency_code">Currency</label>
         <input
           class="form-control"
-          type="number"
-          step="0.01"
-          id="newsletter_price"
-          name="newsletter_price"
-          value="{{ newsletter_price_value if newsletter_price_value is not none else '' }}"
+          type="text"
+          id="currency_code"
+          name="currency_code"
+          maxlength="3"
+          value="{{ currency_value }}"
+          required
         />
+        <div class="form-text">All prices below will be billed in this currency.</div>
       </div>
       <div class="col-md-6">
-        <label class="form-label" for="report_price">Report price (£)</label>
-        {% set report_price_value = values.get('report_price', niche.report_price if niche else 0) %}
-        <input
-          class="form-control"
-          type="number"
-          step="0.01"
-          id="report_price"
-          name="report_price"
-          value="{{ report_price_value if report_price_value is not none else '' }}"
-        />
+        <label class="form-label" for="newsletter_price">Newsletter price ({{ currency_value }})</label>
+        {% set newsletter_price_value = values.get('newsletter_price', '%.2f'|format(niche.newsletter_price or 0) if niche else '0.00') %}
+        <input class="form-control" type="number" step="0.01" id="newsletter_price" name="newsletter_price" value="{{ newsletter_price_value }}" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="report_price">Report price ({{ currency_value }})</label>
+        {% set report_price_value = values.get('report_price', '%.2f'|format(niche.report_price or 0) if niche else '0.00') %}
+        <input class="form-control" type="number" step="0.01" id="report_price" name="report_price" value="{{ report_price_value }}" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="newsletter_cadence">Newsletter cadence</label>
+        <select class="form-select" id="newsletter_cadence" name="newsletter_cadence">
+          {% for cadence in cadences %}
+          <option value="{{ cadence }}" {% if newsletter_cadence_value == cadence %}selected{% endif %}>{{ cadence|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="report_cadence">Report cadence</label>
+        <select class="form-select" id="report_cadence" name="report_cadence">
+          {% for cadence in cadences %}
+          <option value="{{ cadence }}" {% if report_cadence_value == cadence %}selected{% endif %}>{{ cadence|capitalize }}</option>
+          {% endfor %}
+        </select>
       </div>
       <div class="col-12">
         <label class="form-label" for="voice_instructions">Voice instructions</label>
@@ -107,7 +134,7 @@ offers a guarded delete workflow when editing existing niches.
         <div class="form-text">List formatting rules, CTA preferences, and any compliance reminders.</div>
       </div>
       <div class="col-12 d-flex justify-content-end">
-        <button class="btn btn-success" type="submit">{{ submit_label or 'Save niche' }}</button>
+        <button class="btn btn-success" type="submit" {% if plan_locked %}disabled{% endif %}>{{ submit_label or 'Save niche' }}</button>
       </div>
     </form>
     {% if is_update_flow and delete_url %}
